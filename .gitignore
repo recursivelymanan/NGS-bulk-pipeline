@@ -1,0 +1,6 @@
+# ignore nextflow files
+.nextflow*
+work/
+
+# ignore full size data
+data/
