@@ -4,3 +4,6 @@ work/
 
 # ignore full size data
 data/
+
+# ignore output files
+qc_output/*
