@@ -32,8 +32,8 @@ process fastqc {
 Process for combining previously generated HTML QC reports into one QC summary using MultiQC. Requires that the fastqc process created a folder named qc_output
 */
 process multiqc {
-    output:
-    stdout
+    input:
+    val ready
 
     """
     multiqc --outdir $PWD/qc_output $PWD/qc_output/qc_reports
@@ -42,6 +42,7 @@ process multiqc {
 
 workflow  {       
     fqs = channel.from(file("./$params.input_folder/*"))
-    fastqc(fqs) | view { it }
-    multiqc()
+    ready = fastqc(fqs) 
+    ready.view { print it }
+    multiqc(ready.collect())
 }
