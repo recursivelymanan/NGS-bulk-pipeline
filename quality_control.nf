@@ -1,8 +1,6 @@
 params.output_dir = "./workflow_output"
 params.input_dir = null
 params.help = null
-params.genome_fasta = null
-params.genome_gtf = null
 
 // Show help message
 if (params.help == true) {
@@ -13,6 +11,9 @@ if (params.help == true) {
 if (params.input_dir == null) {  
     throw new RuntimeException("Please provide the path to the folder containing .fastq files by using --input_dir")
 }
+
+println("Saving all workflow output to $params.output_dir")
+println("Starting workflow...\n")
 
 /*
 Process for running FastQC quality control on given input files. Outputs HTML QC report to folder qc_output.
@@ -41,6 +42,7 @@ process multiQC {
     path out_dir
 
     """
+    echo Generating MultiQC summary report...
     multiqc --outdir $out_dir/qc_reports $out_dir/qc_reports
     """
 }
@@ -91,11 +93,10 @@ workflow onlyQC {
 workflow skipQC {
     println("========== Running Alignment & Quantification ==========\n")
 
-    input_dir = file("$params.input_dir")
     out_dir = file("$params.output_dir")
-    fqs = channel.from(file("./$params.input_dir/*.fastq"))
-    genome_fasta = channel.from(file("./$params.input_dir/*.fna"))
-    genome_gtf = channel.from(file("./$params.input_dir/*.gtf"))
+    fqs = channel.from(file("$params.input_dir/*.fastq"))
+    genome_fasta = channel.from(file("$params.input_dir/*.fna"))
+    genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
 
     genome_index = alignment_setup(genome_fasta, genome_gtf, input_dir, out_dir)
 }
