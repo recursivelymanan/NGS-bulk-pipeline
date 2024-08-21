@@ -1,6 +1,8 @@
-params.output_dir = "workflow_output"
+params.output_dir = "./workflow_output"
 params.input_dir = null
 params.help = null
+params.genome_fasta = null
+params.genome_gtf = null
 
 // Show help message
 if (params.help == true) {
@@ -17,16 +19,16 @@ Process for running FastQC quality control on given input files. Outputs HTML QC
 */
 process fastQC {
     input:
-    path fqs
+    val fqs
     path out_dir
 
     output:
     stdout
 
     """
-    mkdir -p $PWD/$out_dir
-    mkdir -p $PWD/$out_dir/qc_reports
-    fastqc -o $PWD/$out_dir/qc_reports $fqs
+    mkdir -p $out_dir
+    mkdir -p $out_dir/qc_reports
+    fastqc -o $out_dir/qc_reports $fqs
     """
 }
 
@@ -39,37 +41,47 @@ process multiQC {
     path out_dir
 
     """
-    multiqc --outdir $PWD/$out_dir/qc_reports $PWD/$out_dir/qc_reports
+    multiqc --outdir $out_dir/qc_reports $out_dir/qc_reports
+    """
+}
+
+process alignment_setup {
+    input:
+    path genome_fasta
+    path genome_gtf
+    path input_dir
+    path out_dir
+
+    output:
+    path genome_index
+    stdout
+
+    """
+    mkdir -p $PWD/$out_dir
+    mkdir -p $PWD/$out_dir/STAR
+    mkdir -p $PWD/$out_dir/STAR/genome
+    STAR --runMode genomeGenerate \
+    --genomeDir $PWD/$out_dir/STAR/genome \
+    --genomeFastaFiles $PWD/$input_dir/$genome_fasta
+    --sjdbGTFfile $PWD/$input_dir/$genome_gtf
+    --sjdbOverhang 99
     """
 }
 
 process alignment {
     input:
     path fqs
-    path index
-
-    output:
-    path alignments
 
     """
     
     """
 }
 
-process dummy {
-    output:
-    stdout
-
-    """
-    echo successfully_waited
-    """
-}
-
 workflow onlyQC {
-    println("========== QC Only workflow selected, running QC ==========\n")
+    println("========== Running QC ==========\n")
 
     out_dir = file("$params.output_dir")
-    fqs = channel.from(file("./$params.input_dir/*"))
+    fqs = channel.from(file("$params.input_dir/*.fastq"))
     
     qc_ready = fastQC(fqs, out_dir) 
     qc_ready.view { print it }
@@ -77,21 +89,18 @@ workflow onlyQC {
 }
 
 workflow skipQC {
-    
+    println("========== Running Alignment & Quantification ==========\n")
+
+    input_dir = file("$params.input_dir")
+    out_dir = file("$params.output_dir")
+    fqs = channel.from(file("./$params.input_dir/*.fastq"))
+    genome_fasta = channel.from(file("./$params.input_dir/*.fna"))
+    genome_gtf = channel.from(file("./$params.input_dir/*.gtf"))
+
+    genome_index = alignment_setup(genome_fasta, genome_gtf, input_dir, out_dir)
 }
 
 workflow {
-    out_dir = file("$params.output_dir")
-    fqs = channel.from(file("./$params.input_dir/*"))
-    
-    // Quality Control 
-    qc_ready = fastQC(fqs, out_dir) 
-    qc_ready.view { print it }
-    multiQC(qc_ready.collect(), out_dir)
-
-    // Alignment
-
-
-    // Quantification
-
+    onlyQC()
+    skipQC()
 }
