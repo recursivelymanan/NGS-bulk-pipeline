@@ -7,3 +7,4 @@ data/
 
 # ignore output files
 qc_output/*
+workflow_output/*
