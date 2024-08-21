@@ -1,4 +1,4 @@
-params.output_dir = "qc_output"
+params.output_dir = "workflow_output"
 params.input_dir = null
 params.help = null
 
@@ -15,7 +15,7 @@ if (params.input_dir == null) {
 /*
 Process for running FastQC quality control on given input files. Outputs HTML QC report to folder qc_output.
 */
-process fastqc {
+process fastQC {
     input:
     path fqs
     path out_dir
@@ -33,20 +33,65 @@ process fastqc {
 /*
 Process for combining previously generated HTML QC reports into one QC summary using MultiQC. Requires that the fastqc process created a folder named qc_output
 */
-process multiqc {
+process multiQC {
     input:
     val ready
     path out_dir
 
     """
-    multiqc --outdir $PWD/$out_dir $PWD/$out_dir/qc_reports
+    multiqc --outdir $PWD/$out_dir/qc_reports $PWD/$out_dir/qc_reports
     """
 }
 
-workflow  {      
+process alignment {
+    input:
+    path fqs
+    path index
+
+    output:
+    path alignments
+
+    """
+    
+    """
+}
+
+process dummy {
+    output:
+    stdout
+
+    """
+    echo successfully_waited
+    """
+}
+
+workflow onlyQC {
+    println("========== QC Only workflow selected, running QC ==========\n")
+
     out_dir = file("$params.output_dir")
     fqs = channel.from(file("./$params.input_dir/*"))
-    ready = fastqc(fqs, out_dir) 
-    ready.view { print it }
-    multiqc(ready.collect(), out_dir)
+    
+    qc_ready = fastQC(fqs, out_dir) 
+    qc_ready.view { print it }
+    multiQC(qc_ready.collect(), out_dir)
+}
+
+workflow skipQC {
+    
+}
+
+workflow {
+    out_dir = file("$params.output_dir")
+    fqs = channel.from(file("./$params.input_dir/*"))
+    
+    // Quality Control 
+    qc_ready = fastQC(fqs, out_dir) 
+    qc_ready.view { print it }
+    multiQC(qc_ready.collect(), out_dir)
+
+    // Alignment
+
+
+    // Quantification
+
 }
