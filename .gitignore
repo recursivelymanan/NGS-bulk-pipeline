@@ -2,8 +2,9 @@
 .nextflow*
 work/
 
-# ignore input data
-data/
+# ignore large genome files
+*.fna
+*.gtf
 
 # ignore output files
 qc_output/*
