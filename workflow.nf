@@ -27,8 +27,6 @@ process fastQC {
     stdout
 
     """
-    mkdir -p $out_dir
-    mkdir -p $out_dir/qc_reports
     fastqc -o $out_dir/qc_reports $fqs
     """
 }
