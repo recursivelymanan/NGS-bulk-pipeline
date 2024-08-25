@@ -9,3 +9,5 @@ work/
 # ignore output files
 qc_output/*
 workflow_output/*
+data/*.zip
+data/*.html

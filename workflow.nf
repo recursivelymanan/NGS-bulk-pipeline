@@ -19,15 +19,20 @@ println("Starting workflow...\n")
 Process for running FastQC quality control on given input files. Outputs HTML QC report to folder qc_output.
 */
 process fastQC {
+    publishDir(
+        path: "$params.output_dir/qc_reports",
+        mode: "copy"
+    )
+
     input:
-    val fqs
-    path out_dir
+    path fqs
 
     output:
-    stdout
+    path "*_fastqc.zip"
+    path "*_fastqc.html", emit: html
 
     """
-    fastqc -o $out_dir/qc_reports $fqs
+    fastqc $fqs
     """
 }
 
@@ -35,13 +40,20 @@ process fastQC {
 Process for combining previously generated HTML QC reports into one QC summary using MultiQC. Requires that the fastqc process created a folder named qc_output
 */
 process multiQC {
+    publishDir (
+        path: "$params.output_dir/qc_reports",
+        mode: "move"
+    )
+
     input:
-    val ready
-    path out_dir
+    path fq_reports
+
+    output:
+    path "multiqc_report.html"
 
     """
     echo Generating MultiQC summary report...
-    multiqc --outdir $out_dir/qc_reports $out_dir/qc_reports
+    multiqc .
     """
 }
 
@@ -57,13 +69,13 @@ process alignment_setup {
     stdout
 
     """
-    mkdir -p $PWD/$out_dir
-    mkdir -p $PWD/$out_dir/STAR
-    mkdir -p $PWD/$out_dir/STAR/genome
+    mkdir -p $out_dir
+    mkdir -p $out_dir/STAR
+    mkdir -p $out_dir/STAR/genome
     STAR --runMode genomeGenerate \
-    --genomeDir $PWD/$out_dir/STAR/genome \
-    --genomeFastaFiles $PWD/$input_dir/$genome_fasta
-    --sjdbGTFfile $PWD/$input_dir/$genome_gtf
+    --genomeDir $out_dir/STAR/genome \
+    --genomeFastaFiles $input_dir/$genome_fasta
+    --sjdbGTFfile $input_dir/$genome_gtf
     --sjdbOverhang 99
     """
 }
@@ -83,9 +95,8 @@ workflow onlyQC {
     out_dir = file("$params.output_dir")
     fqs = channel.from(file("$params.input_dir/*.fastq"))
     
-    qc_ready = fastQC(fqs, out_dir) 
-    qc_ready.view { print it }
-    multiQC(qc_ready.collect(), out_dir)
+    fastQC(fqs)
+    multiQC(fastQC.out.html.collect())
 }
 
 workflow skipQC {
