@@ -28,7 +28,7 @@ process fastQC {
     path fqs
 
     output:
-    path "*_fastqc.zip"
+    path "*_fastqc.zip", emit: zip
     path "*_fastqc.html", emit: html
 
     """
@@ -42,17 +42,17 @@ Process for combining previously generated HTML QC reports into one QC summary u
 process multiQC {
     publishDir (
         path: "$params.output_dir/qc_reports",
-        mode: "move"
+        mode: "copy"
     )
 
     input:
-    path fq_reports
+    path fq_html
+    path fq_zip
 
     output:
     path "multiqc_report.html"
 
     """
-    echo Generating MultiQC summary report...
     multiqc .
     """
 }
@@ -96,7 +96,7 @@ workflow onlyQC {
     fqs = channel.from(file("$params.input_dir/*.fastq"))
     
     fastQC(fqs)
-    multiQC(fastQC.out.html.collect())
+    multiQC(fastQC.out.html.collect(), fastQC.out.zip.collect())
 }
 
 workflow skipQC {

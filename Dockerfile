@@ -8,7 +8,7 @@ RUN apt-get update && \
     mv nextflow /usr/bin
 
 # Create conda env with necessary packages
-RUN conda create -n nf bioconda::fastqc bioconda::star bioconda::multiqc-0.9.1a0-py27_4 -y
+RUN conda create -n nf bioconda::fastqc bioconda::star bioconda::multiqc -y
 
 # Bring nextflow workflow files and test data into container
 COPY workflow.nf nextflow.config /app/
@@ -17,6 +17,6 @@ COPY data/ /app/data/
 WORKDIR /app
 
 # Run the nextflow executable when the container starts. Parameters defined at runtime
-ENTRYPOINT ["nextflow"]
+ENTRYPOINT ["conda"]
 
-CMD ["run", "workflow.nf", "-entry", "onlyQC", "--input_dir", "data"]
+CMD ["run", "-n", "nf", "nextflow", "run", "workflow.nf", "-entry", "onlyQC", "--input_dir", "data"]
