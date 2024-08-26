@@ -92,7 +92,6 @@ process alignment {
 workflow onlyQC {
     println("========== Running QC ==========\n")
 
-    out_dir = file("$params.output_dir")
     fqs = channel.from(file("$params.input_dir/*.fastq"))
     
     fastQC(fqs)
