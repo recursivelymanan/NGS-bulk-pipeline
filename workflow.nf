@@ -57,59 +57,9 @@ process multiQC {
     """
 }
 
-process alignment_setup {
-    input:
-    path genome_fasta
-    path genome_gtf
-    path input_dir
-    path out_dir
-
-    output:
-    path genome_index
-    stdout
-
-    """
-    mkdir -p $out_dir
-    mkdir -p $out_dir/STAR
-    mkdir -p $out_dir/STAR/genome
-    STAR --runMode genomeGenerate \
-    --genomeDir $out_dir/STAR/genome \
-    --genomeFastaFiles $input_dir/$genome_fasta
-    --sjdbGTFfile $input_dir/$genome_gtf
-    --sjdbOverhang 99
-    """
-}
-
-process alignment {
-    input:
-    path fqs
-
-    """
-    
-    """
-}
-
-workflow onlyQC {
-    println("========== Running QC ==========\n")
-
+workflow {
     fqs = channel.from(file("$params.input_dir/*.fastq"))
     
     fastQC(fqs)
     multiQC(fastQC.out.html.collect(), fastQC.out.zip.collect())
-}
-
-workflow skipQC {
-    println("========== Running Alignment & Quantification ==========\n")
-
-    out_dir = file("$params.output_dir")
-    fqs = channel.from(file("$params.input_dir/*.fastq"))
-    genome_fasta = channel.from(file("$params.input_dir/*.fna"))
-    genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
-
-    genome_index = alignment_setup(genome_fasta, genome_gtf, input_dir, out_dir)
-}
-
-workflow {
-    onlyQC()
-    skipQC()
 }
