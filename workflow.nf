@@ -58,40 +58,49 @@ process multiQC {
 }
 
 process alignment_setup {
+    publishDir(
+        path: "$params.output_dir/STAR/genome"
+        mode: "copy"
+    )
+
     input:
     path genome_fasta
     path genome_gtf
-    path input_dir
-    path out_dir
 
     output:
-    path genome_index
-    stdout
+    path "STAR", emit: index
 
     """
-    mkdir -p $out_dir
-    mkdir -p $out_dir/STAR
-    mkdir -p $out_dir/STAR/genome
     STAR --runMode genomeGenerate \
-    --genomeDir $out_dir/STAR/genome \
-    --genomeFastaFiles $input_dir/$genome_fasta
-    --sjdbGTFfile $input_dir/$genome_gtf
+    --genomeDir . \
+    --genomeFastaFiles $genome_fasta
+    --sjdbGTFfile $genome_gtf
     --sjdbOverhang 99
     """
 }
 
 process alignment {
+    publishDir(
+        path: "$params.output_dir/STAR"
+        mode: "copy"
+    )
+
     input:
-    path fqs
+    path paired_fqs
+    path genome_index
+
+    output:
+    path "*.bam", emit: bam
 
     """
+    STAR \
+    --genomeDir $genome_index \
+    --readFilesIn $paired_fqs \
     
     """
 }
 
 workflow onlyQC {
-    println("========== Running QC ==========\n")
-
     fqs = channel.from(file("$params.input_dir/*.fastq"))
     
     fastQC(fqs)
@@ -99,14 +108,12 @@ workflow onlyQC {
 }
 
 workflow skipQC {
-    println("========== Running Alignment & Quantification ==========\n")
-
-    out_dir = file("$params.output_dir")
-    fqs = channel.from(file("$params.input_dir/*.fastq"))
+    paired_fqs = channel.fromFilePairs(file("$params.input_dir/*{1,2}.fastq"))
     genome_fasta = channel.from(file("$params.input_dir/*.fna"))
     genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
 
-    genome_index = alignment_setup(genome_fasta, genome_gtf, input_dir, out_dir)
+    alignment_setup(genome_fasta, genome_gtf, input_dir)
+    alignment(paired_fqs, alignment_setup.out.index.collect())
 }
 
 workflow {
