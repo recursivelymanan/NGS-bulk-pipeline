@@ -117,7 +117,7 @@ process alignment {
     STAR \
     --genomeDir $genome_index \
     --readFilesIn $paired_fqs \
-    
+    --outSAMtype BAM
     """
 }
 
