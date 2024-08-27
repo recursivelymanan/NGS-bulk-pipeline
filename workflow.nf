@@ -1,6 +1,7 @@
 params.output_dir = "./workflow_output"
 params.input_dir = null
 params.help = null
+params.download_reference_files = false
 
 // Show help message
 if (params.help == true) {
@@ -57,9 +58,29 @@ process multiQC {
     """
 }
 
-process alignment_setup {
+/*
+Retrieve genomic sequence .fna and gene transfer format .gtf file for the human genome for downstream processes. 
+*/
+process retrieveFilesHuman {
     publishDir(
-        path: "$params.output_dir/STAR/genome"
+        path: "$params.output_dir/ref",
+        mode: "copy"
+    )
+
+    output:
+    path "human_genome/ncbi_dataset/data/GCF_000001405.40/*.fna", emit: genome
+    path "human_genome/ncbi_dataset/data/GCF_000001405.40/*.gtf", emit: gtf
+
+    """
+    datasets download genome accession GCF_000001405.40 --dehydrated --include genome,gtf --filename human_GRCh38_dataset.zip
+    unzip human_GRCh38_dataset.zip -d human_genome
+    datasets rehydrate --directory human_genome/
+    """
+}
+
+process alignmentSetup {
+    publishDir(
+        path: "$params.output_dir/STAR/genome",
         mode: "copy"
     )
 
@@ -81,7 +102,7 @@ process alignment_setup {
 
 process alignment {
     publishDir(
-        path: "$params.output_dir/STAR"
+        path: "$params.output_dir/STAR",
         mode: "copy"
     )
 
@@ -109,11 +130,20 @@ workflow onlyQC {
 
 workflow skipQC {
     paired_fqs = channel.fromFilePairs(file("$params.input_dir/*{1,2}.fastq"))
-    genome_fasta = channel.from(file("$params.input_dir/*.fna"))
-    genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
 
-    alignment_setup(genome_fasta, genome_gtf, input_dir)
-    alignment(paired_fqs, alignment_setup.out.index.collect())
+    if (params.download_reference_files) {
+        println("Not using provided files")
+        retrieveFilesHuman()
+        genome_fasta = retrieveFilesHuman.out.genome.collect()
+        genome_gtf = retrieveFilesHuman.out.gtf.collect()
+    }
+    else {
+        println("Using provided files")
+        genome_fasta = channel.from(file("$params.input_dir/*.fna"))
+        genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
+    }
+    alignmentSetup(genome_fasta, genome_gtf)
+    //alignment(paired_fqs, alignment_setup.out.index.collect())
 }
 
 workflow {
