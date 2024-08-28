@@ -1,6 +1,7 @@
 params.output_dir = "./workflow_output"
 params.input_dir = null
 params.help = null
+params.download_reference_files = false
 
 // Show help message
 if (params.help == true) {
@@ -57,9 +58,114 @@ process multiQC {
     """
 }
 
-workflow {
+/*
+Retrieve genomic sequence .fna and gene transfer format .gtf file for the human genome for downstream processes. 
+*/
+process retrieveFilesHuman {
+    output:
+    path "human_genome/ncbi_dataset/data/GCF_000001405.40/*.fna", emit: genome
+    path "human_genome/ncbi_dataset/data/GCF_000001405.40/*.gtf", emit: gtf
+
+    """
+    datasets download genome accession GCF_000001405.40 --dehydrated --include genome,gtf --filename human_GRCh38_dataset.zip
+    unzip human_GRCh38_dataset.zip -d human_genome
+    datasets rehydrate --directory human_genome/
+    """
+}
+
+/*
+Rename the genome files retrieved by retrieveFilesHuman() in order to remove the long directory chain resulting from the ncbi download. 
+*/
+process renameGenomeFiles {
+    publishDir (
+        path: "$params.output_dir/ref",
+        mode: "copy"
+    )
+
+    input:
+    path genome
+    path gtf
+
+    output:
+    path "*.fna", emit: genome
+    path "*.gtf", emit: gtf
+
+    """
+    cp $genome genome.fna
+    cp $gtf genome.gtf
+    """
+}
+
+process alignmentSetup {
+    publishDir(
+        path: "$params.output_dir/STAR/genome",
+        mode: "copy"
+    )
+
+    input:
+    path genome_fasta
+    path genome_gtf
+
+    output:
+    path "STAR", emit: index
+
+    """
+    STAR --runMode genomeGenerate \
+    --genomeDir . \
+    --genomeFastaFiles $genome_fasta
+    --sjdbGTFfile $genome_gtf
+    --sjdbOverhang 99
+    """
+}
+
+process alignment {
+    publishDir(
+        path: "$params.output_dir/STAR",
+        mode: "copy"
+    )
+
+    input:
+    path paired_fqs
+    path genome_index
+
+    output:
+    path "*.bam", emit: bam
+
+    """
+    STAR \
+    --genomeDir $genome_index \
+    --readFilesIn $paired_fqs \
+    --outSAMtype BAM
+    """
+}
+
+workflow onlyQC {
     fqs = channel.from(file("$params.input_dir/*.fastq"))
     
     fastQC(fqs)
     multiQC(fastQC.out.html.collect(), fastQC.out.zip.collect())
+}
+
+workflow skipQC {
+    paired_fqs = channel.fromFilePairs(file("$params.input_dir/*{1,2}.fastq"))
+
+    if (params.download_reference_files) {
+        println("Downloading required genome files from NCBI...")
+        retrieveFilesHuman()
+        renameGenomeFiles(retrieveFilesHuman.out.genome.collect(), retrieveFilesHuman.out.gtf.collect())
+        genome_fasta = retrieveFilesHuman.out.genome.collect()
+        genome_gtf = retrieveFilesHuman.out.gtf.collect()
+    }
+    else {
+        println("Using provided files...")
+        genome_fasta = channel.from(file("$params.input_dir/*.fna"))
+        genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
+    }
+    alignmentSetup(genome_fasta, genome_gtf)
+    //alignment(paired_fqs, alignment_setup.out.index.collect())
+}
+
+workflow {
+    onlyQC()
+    skipQC()
 }
