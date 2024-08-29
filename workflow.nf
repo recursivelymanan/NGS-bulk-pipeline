@@ -96,6 +96,9 @@ process renameGenomeFiles {
     """
 }
 
+/*
+Prepare the genome index directory to prepare for mapping, using STAR with --runMode genomeGenerate.
+*/
 process alignmentSetup {
     publishDir(
         path: "$params.output_dir/STAR/genome",
@@ -118,6 +121,9 @@ process alignmentSetup {
     """
 }
 
+/*
+Map reads using STAR.
+*/
 process alignment {
     publishDir(
         path: "$params.output_dir/STAR",
