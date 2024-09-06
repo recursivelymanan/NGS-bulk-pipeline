@@ -145,33 +145,32 @@ process alignment {
     """
 }
 
-workflow onlyQC {
+workflow QC {
     fqs = channel.from(file("$params.input_dir/*.fastq"))
     
     fastQC(fqs)
     multiQC(fastQC.out.html.collect(), fastQC.out.zip.collect())
 }
 
-workflow skipQC {
+workflow processing {
     paired_fqs = channel.fromFilePairs(file("$params.input_dir/*{1,2}.fastq"))
 
     if (params.download_reference_files) {
-        println("Downloading required genome files from NCBI...")
         retrieveFilesHuman()
         renameGenomeFiles(retrieveFilesHuman.out.genome.collect(), retrieveFilesHuman.out.gtf.collect())
         genome_fasta = retrieveFilesHuman.out.genome.collect()
         genome_gtf = retrieveFilesHuman.out.gtf.collect()
     }
     else {
-        println("Using provided files...")
         genome_fasta = channel.from(file("$params.input_dir/*.fna"))
         genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
     }
+
     alignmentSetup(genome_fasta, genome_gtf)
-    //alignment(paired_fqs, alignment_setup.out.index.collect())
+    alignment(paired_fqs, alignment_setup.out.index.collect())
 }
 
 workflow {
-    onlyQC()
-    skipQC()
+    QC()
+    processing()
 }
