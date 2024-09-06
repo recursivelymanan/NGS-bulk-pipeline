@@ -145,6 +145,27 @@ process alignment {
     """
 }
 
+/*
+Quantify expression with featureCounts
+*/
+process quantify {
+    publishDir(
+        path: "$params.output_dir/featureCounts",
+        mode: "copy"
+    )
+
+    input:
+    path gtf
+    path bams
+
+    output:
+
+    """
+    featureCounts
+    """
+
+}
+
 workflow QC {
     fqs = channel.from(file("$params.input_dir/*.fastq"))
     
@@ -168,6 +189,7 @@ workflow processing {
 
     alignmentSetup(genome_fasta, genome_gtf)
     alignment(paired_fqs, alignment_setup.out.index.collect())
+    quantify(genome_gtf, alignment.out.bam.collect())
 }
 
 workflow {
