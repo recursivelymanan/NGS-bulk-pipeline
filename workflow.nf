@@ -1,8 +1,3 @@
-params.output_dir = "./workflow_output"
-params.input_dir = null
-params.help = null
-params.download_reference_files = false
-params.aligner = "hisat2"
 
 // Show help message
 if (params.help == true) {
@@ -14,8 +9,24 @@ if (params.input_dir == null) {
     throw new RuntimeException("Please provide the path to the folder containing .fastq files by using --input_dir")
 }
 
+// Throw error if aligner is not hisat2 or star
+if (params.aligner != "star" && params.aligner != "hisat2") {
+    throw new RuntimeException("Invalid aligner. --aligner must be set to 'star' or 'hisat2'")
+}
+
+println("Reading input from $params.input_dir")
 println("Saving all workflow output to $params.output_dir")
+println("----------------------")
+if (params.download_reference_files) {
+    println("--download_reference_files option was selected, necessary files will be downloaded.")
+}
+else {
+    println("--download_reference_files option was not selected, using provided genome files in $params.input_dir")
+}
+
 println("Starting workflow...\n")
+
+
 
 /*
 Process for running FastQC quality control on given input files. Outputs HTML QC report to folder qc_output.
@@ -60,7 +71,7 @@ process multiQC {
 }
 
 /*
-Retrieve genomic sequence .fna and gene transfer format .gtf file for the human genome for downstream processes. 
+Retrieve genomic sequence .fna and gene transfer format .gtf file for the human genome for downstream processes. (Used for STAR workflow)
 */
 process retrieveFilesHuman {
     output:
@@ -75,7 +86,7 @@ process retrieveFilesHuman {
 }
 
 /*
-Rename the genome files retrieved by retrieveFilesHuman() in order to remove the long directory chain resulting from the ncbi download. 
+Rename the genome files retrieved by retrieveFilesHuman() in order to remove the long directory chain resulting from the ncbi download. (Used for STAR workflow)
 */
 process renameGenomeFiles {
     publishDir (
@@ -98,7 +109,7 @@ process renameGenomeFiles {
 }
 
 /*
-Retrieve only the gene transfer format .gtf file for the human genome for downstream processes. 
+Retrieve only the gene transfer format .gtf file for the human genome for downstream processes. (Used for HISAT2 workflow)
 */
 process retrieveGTFhuman {
     output:
@@ -112,7 +123,7 @@ process retrieveGTFhuman {
 }
 
 /*
-Rename the GTF file retrieved by retrieveGTFhuman() in order to remove the long directory chain resulting from the ncbi download. 
+Rename the GTF file retrieved by retrieveGTFhuman() in order to remove the long directory chain resulting from the ncbi download. (Used for HISAT2 workflow)
 */
 process renameGTFfile {
     publishDir (
@@ -243,14 +254,22 @@ process quantify {
 
 }
 
+/*
+Workflow for running QC with FastQC and MultiQC. 
+*/
 workflow QC {
+    println("Running QC...")
     fqs = channel.from(file("$params.input_dir/*.fastq"))
     
     fastQC(fqs)
     multiQC(fastQC.out.html.collect(), fastQC.out.zip.collect())
 }
 
+/*
+Workflow for post-QC processing with indexing, alignment and quantification. 
+*/
 workflow processing {
+    println("Beginning processing...")
     paired_fqs = channel.fromFilePairs("$params.input_dir/*{1,2}.fastq", flat: true)
     
     // Processing workflow using HISAT2 
@@ -286,23 +305,9 @@ workflow processing {
     }
 }
 
-process testproc {
-    input:
-    tuple val(id), path(bam)
-
-    output:
-    stdout
-
-    """
-    echo $id
-    """
-}
-
-workflow test {
-    fq = channel.fromFilePairs(file("$params.input_dir/*.fastq"), flat: true)
-    testproc(fq) | view { it }
-}
-
+/*
+Main workflow. 
+*/
 workflow {
     QC()
     processing()
