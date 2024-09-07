@@ -159,6 +159,7 @@ process alignmentHISAT {
     )
 
     input:
+    path indices
     tuple val(sampleID), path(read1), path(read2)
 
     output:
@@ -232,9 +233,12 @@ process quantify {
     path bams
 
     output:
+    path "*.txt", emit: counts
 
+    script:
+    def out_name = 
     """
-    featureCounts
+    featureCounts -a $gtf -o 
     """
 
 }
@@ -259,10 +263,10 @@ workflow processing {
             genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
         }
         alignmentSetupHISAT()
-        alignmentHISAT(alignmentSetupHISAT.out.indices.collect())
-        quantify(genome_gtf, alignmentHISAT.out.bam.collect())
+        alignmentHISAT(alignmentSetupHISAT.out.indices)
+        quantify(genome_gtf, alignmentHISAT.out.bam)
     }
-    
+
     // Processing workflow using STAR
     else {
         if (params.download_reference_files) {
@@ -277,9 +281,26 @@ workflow processing {
         }
     
         alignmentSetupSTAR(genome_fasta, genome_gtf)
-        alignmentSTAR(paired_fqs, alignment_setup.out.index.collect())
-        quantify(genome_gtf, alignmentSTAR.out.bam.collect())
+        alignmentSTAR(paired_fqs, alignment_setup.out.index)
+        quantify(genome_gtf, alignmentSTAR.out.bam)
     }
+}
+
+process testproc {
+    input:
+    tuple val(id), path(bam)
+
+    output:
+    stdout
+
+    """
+    echo $id
+    """
+}
+
+workflow test {
+    fq = channel.fromFilePairs(file("$params.input_dir/*.fastq"), flat: true)
+    testproc(fq) | view { it }
 }
 
 workflow {
