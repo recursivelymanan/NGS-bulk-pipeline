@@ -2,6 +2,7 @@ params.output_dir = "./workflow_output"
 params.input_dir = null
 params.help = null
 params.download_reference_files = false
+params.aligner = "hisat2"
 
 // Show help message
 if (params.help == true) {
@@ -97,9 +98,81 @@ process renameGenomeFiles {
 }
 
 /*
+Retrieve only the gene transfer format .gtf file for the human genome for downstream processes. 
+*/
+process retrieveGTFhuman {
+    output:
+    path "human_genome/ncbi_dataset/data/GCF_000001405.40/*.gtf", emit: gtf
+
+    """
+    datasets download genome accession GCF_000001405.40 --dehydrated --include gtf --filename human_GRCh38_dataset.zip
+    unzip human_GRCh38_dataset.zip -d human_genome
+    datasets rehydrate --directory human_genome/
+    """
+}
+
+/*
+Rename the GTF file retrieved by retrieveGTFhuman() in order to remove the long directory chain resulting from the ncbi download. 
+*/
+process renameGTFfile {
+    publishDir (
+        path: "$params.output_dir/ref",
+        mode: "copy"
+    )
+
+    input:
+    path gtf
+
+    output:
+    path "*.gtf", emit: gtf
+
+    """
+    cp $gtf genome.gtf
+    """
+}
+
+/*
+Prepare the genome index directory to prepare for mapping with HISAT2. Genome index is not generated locally. 
+*/
+process alignmentSetupHISAT {
+    publishDir(
+        path: "$params.output_dir/HISAT2/genome",
+        mode: "copy"
+    )
+
+    output:
+    path "*.ht2*", emit: indices
+
+    """
+    curl https://genome-idx.s3.amazonaws.com/hisat/grch38_genome.tar.gz --output hisat2_index.tar.gz
+    tar -xvzf hisat2_index.tar.gz
+    """
+}
+
+/*
+Map reads using HISAT2.
+*/
+process alignmentHISAT {
+    publishDir(
+        path: "$params.output_dir/HISAT2",
+        mode: "copy"
+    )
+
+    input:
+    tuple val(sampleID), path(read1), path(read2)
+
+    output:
+    path "*.bam", emit: bam
+
+    """
+    hisat2 -x grch38/genome -1 $read1 -2 $read2 | samtools view -bSh > ${sampleID}_aligned.bam
+    """
+}
+
+/*
 Prepare the genome index directory to prepare for mapping, using STAR with --runMode genomeGenerate.
 */
-process alignmentSetup {
+process alignmentSetupSTAR {
     publishDir(
         path: "$params.output_dir/STAR/genome",
         mode: "copy"
@@ -124,7 +197,7 @@ process alignmentSetup {
 /*
 Map reads using STAR.
 */
-process alignment {
+process alignmentSTAR {
     publishDir(
         path: "$params.output_dir/STAR",
         mode: "copy"
@@ -174,22 +247,39 @@ workflow QC {
 }
 
 workflow processing {
-    paired_fqs = channel.fromFilePairs(file("$params.input_dir/*{1,2}.fastq"))
-
-    if (params.download_reference_files) {
-        retrieveFilesHuman()
-        renameGenomeFiles(retrieveFilesHuman.out.genome.collect(), retrieveFilesHuman.out.gtf.collect())
-        genome_fasta = retrieveFilesHuman.out.genome.collect()
-        genome_gtf = retrieveFilesHuman.out.gtf.collect()
+    paired_fqs = channel.fromFilePairs("$params.input_dir/*{1,2}.fastq", flat: true)
+    
+    // Processing workflow using HISAT2 
+    if (params.aligner == "hisat2") {
+        if (params.download_reference_files) {
+            retrieveGTFhuman()
+            genome_gtf = retrieveGTFhuman().out.gtf.collect()
+        }
+        else {
+            genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
+        }
+        alignmentSetupHISAT()
+        alignmentHISAT(alignmentSetupHISAT.out.indices.collect())
+        quantify(genome_gtf, alignmentHISAT.out.bam.collect())
     }
+    
+    // Processing workflow using STAR
     else {
-        genome_fasta = channel.from(file("$params.input_dir/*.fna"))
-        genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
+        if (params.download_reference_files) {
+            retrieveFilesHuman()
+            renameGenomeFiles(retrieveFilesHuman.out.genome.collect(), retrieveFilesHuman.out.gtf.collect())
+            genome_fasta = retrieveFilesHuman.out.genome.collect()
+            genome_gtf = retrieveFilesHuman.out.gtf.collect()
+        }
+        else {
+            genome_fasta = channel.from(file("$params.input_dir/*.fna"))
+            genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
+        }
+    
+        alignmentSetupSTAR(genome_fasta, genome_gtf)
+        alignmentSTAR(paired_fqs, alignment_setup.out.index.collect())
+        quantify(genome_gtf, alignmentSTAR.out.bam.collect())
     }
-
-    alignmentSetup(genome_fasta, genome_gtf)
-    alignment(paired_fqs, alignment_setup.out.index.collect())
-    quantify(genome_gtf, alignment.out.bam.collect())
 }
 
 workflow {
