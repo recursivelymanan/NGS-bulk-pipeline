@@ -2,7 +2,7 @@ FROM continuumio/miniconda3
 
 # Install jdk and nextflow
 RUN apt-get update && \
-    apt-get install -y curl wget default-jdk unzip && \ 
+    apt-get install -y curl wget default-jdk unzip tar && \ 
     curl -s https://get.nextflow.io | bash && \
     chmod +x nextflow && \
     mv nextflow /usr/bin
