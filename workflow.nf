@@ -152,7 +152,7 @@ process alignmentSetupHISAT {
     )
 
     output:
-    path "*.ht2*", emit: indices
+    path "grch38/*.ht2*", emit: indices
 
     """
     curl https://genome-idx.s3.amazonaws.com/hisat/grch38_genome.tar.gz --output hisat2_index.tar.gz
@@ -282,7 +282,7 @@ workflow processing {
             genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
         }
         alignmentSetupHISAT()
-        alignmentHISAT(alignmentSetupHISAT.out.indices)
+        alignmentHISAT(alignmentSetupHISAT.out.indices, paired_fqs)
         quantify(genome_gtf, alignmentHISAT.out.bam)
     }
 
