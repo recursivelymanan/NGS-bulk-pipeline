@@ -177,7 +177,9 @@ process alignmentHISAT {
     path "*.bam", emit: bam
 
     """
-    hisat2 -x grch38/genome -1 $read1 -2 $read2 | samtools view -bSh > ${sampleID}_aligned.bam
+    hisat2 -x /app/grch38/genome -1 $read1 -2 $read2 -S ${sampleID}.sam
+    samtools view -bSh ${sampleID}.sam > ${sampleID}.bam
+    rm ${sampleID}.sam
     """
 }
 
@@ -274,7 +276,7 @@ workflow processing {
     if (params.aligner == "hisat2") {
         if (params.download_reference_files) {
             retrieveGTFhuman()
-            genome_gtf = retrieveGTFhuman().out.gtf.collect()
+            genome_gtf = retrieveGTFhuman.out.gtf.collect()
         }
         else {
             genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
