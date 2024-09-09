@@ -177,7 +177,7 @@ process alignmentHISAT {
     path "*.bam", emit: bam
 
     """
-    hisat2 -x /app/grch38/genome -1 $read1 -2 $read2 -S ${sampleID}.sam
+    hisat2 -x /app/$param.output_dir/HISAT2/genome/grch38/genome -1 $read1 -2 $read2 -S ${sampleID}.sam
     samtools view -bSh ${sampleID}.sam > ${sampleID}.bam
     rm ${sampleID}.sam
     """
