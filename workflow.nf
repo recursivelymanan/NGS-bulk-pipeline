@@ -14,17 +14,17 @@ if (params.aligner != "star" && params.aligner != "hisat2") {
     throw new RuntimeException("Invalid aligner. --aligner must be set to 'star' or 'hisat2'")
 }
 
-println("Reading input from $params.input_dir")
-println("Saving all workflow output to $params.output_dir")
-println("----------------------")
+println("Reading input from directory: $params.input_dir")
+println("Saving all workflow output to directory: $params.output_dir\n")
+
 if (params.download_reference_files) {
-    println("--download_reference_files option was selected, necessary files will be downloaded.")
+    println("--download_reference_files option was selected, necessary files will be downloaded.\n")
 }
 else {
-    println("--download_reference_files option was not selected, using provided genome files in $params.input_dir")
+    println("--download_reference_files option was not selected, using provided genome files in $params.input_dir\n")
 }
 
-println("Starting workflow...\n")
+println("STARTING WORKFLOW...\n")
 
 
 
@@ -258,7 +258,6 @@ process quantify {
 Workflow for running QC with FastQC and MultiQC. 
 */
 workflow QC {
-    println("Running QC...")
     fqs = channel.from(file("$params.input_dir/*.fastq"))
     
     fastQC(fqs)
@@ -269,7 +268,6 @@ workflow QC {
 Workflow for post-QC processing with indexing, alignment and quantification. 
 */
 workflow processing {
-    println("Beginning processing...")
     paired_fqs = channel.fromFilePairs("$params.input_dir/*{1,2}.fastq", flat: true)
     
     // Processing workflow using HISAT2 
