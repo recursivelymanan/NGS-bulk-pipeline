@@ -19,4 +19,4 @@ WORKDIR /app
 # Run the nextflow executable when the container starts. Parameters defined at runtime
 ENTRYPOINT ["conda"]
 
-CMD ["run", "-n", "nf", "--live-stream", "nextflow", "run", "workflow.nf", "--input_dir", "data"]
+CMD ["run", "-n", "nf", "--live-stream", "nextflow", "run", "workflow.nf", "--input_dir", "data", "--download_reference_files"]
