@@ -175,9 +175,9 @@ process alignmentHISAT {
 
     output:
     path "*.sam", emit: sam
-
+    
     """
-    hisat2 -x /app/$params.output_dir/HISAT2/genome/grch38/genome -1 $read1 -2 $read2 -S ${sampleID}.sam
+    hisat2 -x genome -1 $read1 -2 $read2 -S ${sampleID}.sam
     """
 }
 
@@ -197,7 +197,7 @@ process convertToBAM {
     path "*.bam", emit: bam
 
     script:
-    def name = ${sam}.getBaseName()
+    def name = sam.getBaseName()
     """
     samtools view -bSh $sam > ${name}.bam
     """
@@ -303,7 +303,7 @@ workflow processing {
         }
         alignmentSetupHISAT()
         alignmentHISAT(alignmentSetupHISAT.out.indices.collect(), paired_fqs)
-	    convertToBAM(alignmentHISAT.out.sam)
+        convertToBAM(alignmentHISAT.out.sam)
         quantify(genome_gtf, convertToBAM.out.bam)
     }
 
