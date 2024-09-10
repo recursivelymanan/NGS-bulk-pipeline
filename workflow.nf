@@ -174,12 +174,32 @@ process alignmentHISAT {
     tuple val(sampleID), path(read1), path(read2)
 
     output:
-    path "*.bam", emit: bam
+    path "*.sam", emit: sam
 
     """
-    hisat2 -x /app/$param.output_dir/HISAT2/genome/grch38/genome -1 $read1 -2 $read2 -S ${sampleID}.sam
-    samtools view -bSh ${sampleID}.sam > ${sampleID}.bam
-    rm ${sampleID}.sam
+    hisat2 -x /app/$params.output_dir/HISAT2/genome/grch38/genome -1 $read1 -2 $read2 -S ${sampleID}.sam
+    """
+}
+
+/*
+Convert SAM files to BAM format.
+*/
+process convertToBAM {
+    publishDir(
+	path: "$params.output_dir/HISAT2",
+	mode: "copy"
+    )
+
+    input:
+    path sam
+
+    output:
+    path "*.bam", emit: bam
+
+    script:
+    def name = ${sam}.getBaseName()
+    """
+    samtools view -bSh $sam > ${name}.bam
     """
 }
 
@@ -282,8 +302,9 @@ workflow processing {
             genome_gtf = channel.from(file("$params.input_dir/*.gtf"))
         }
         alignmentSetupHISAT()
-        alignmentHISAT(alignmentSetupHISAT.out.indices, paired_fqs)
-        quantify(genome_gtf, alignmentHISAT.out.bam)
+        alignmentHISAT(alignmentSetupHISAT.out.indices.collect(), paired_fqs)
+	convertToBAM(alignmentHISAT.out.sam)
+        quantify(genome_gtf, convertToBAM.out.bam)
     }
 
     // Processing workflow using STAR
