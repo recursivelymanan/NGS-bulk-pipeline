@@ -263,15 +263,15 @@ process quantify {
 
     input:
     path gtf
-    path bams
+    path bam
 
     output:
     path "*.txt", emit: counts
 
     script:
-    def out_name = 
+    def out_name = bam.getBaseName()
     """
-    featureCounts -a $gtf -o 
+    featureCounts -a $gtf -o ${out_name}.txt $bam
     """
 
 }
