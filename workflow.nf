@@ -303,7 +303,7 @@ workflow processing {
         }
         alignmentSetupHISAT()
         alignmentHISAT(alignmentSetupHISAT.out.indices.collect(), paired_fqs)
-	convertToBAM(alignmentHISAT.out.sam)
+	    convertToBAM(alignmentHISAT.out.sam)
         quantify(genome_gtf, convertToBAM.out.bam)
     }
 
