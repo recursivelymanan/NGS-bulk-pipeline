@@ -9,7 +9,7 @@ You can run this workflow directly through Nextflow or using the provided Docker
 ### Running with Nextflow
 
 1. [Install nextflow](https://www.nextflow.io/docs/latest/install.html)
-2. Using the package manager of your choice, create an environment with the dependencies listed in the provided `env.yml`. Using miniconda, this would look like: `conda env create -f environment.yml`
+2. Using the package manager of your choice, create an environment with the dependencies listed in the provided `env.yml`. Using miniconda, this would look like: `conda env create -f env.yml`
 3. Clone this repo to your local machine using `git clone https://github.com/recursivelymanan/NGS-bulk-pipeline`.
 4. Navigate into the repo directory and run the workflow using `nextflow run workflow.nf --inputDir <input directory>` and any additional options.
 
