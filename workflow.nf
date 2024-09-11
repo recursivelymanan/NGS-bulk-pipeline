@@ -9,8 +9,8 @@ if (params.inputDir == null) {
     throw new RuntimeException("Please provide the path to the folder containing .fastq files by using --inputDir")
 }
 
-// Throw error if aligner is not hisat2 or star
-if (params.aligner != "star" && params.aligner != "hisat2") {
+// Throw error if aligner is not hisat2
+if (params.aligner != "hisat2") {
     throw new RuntimeException("Invalid aligner. --aligner must be set to 'star' or 'hisat2'")
 }
 
@@ -333,24 +333,6 @@ workflow processing {
         convertToBAM(alignmentHISAT.out.sam)
         quantify(params.paired, genome_gtf, convertToBAM.out.bam)
     }
-
-    // Processing workflow using STAR
-    else {
-        if (params.downloadReferenceFiles) {
-            retrieveFilesHuman()
-            renameGenomeFiles(retrieveFilesHuman.out.genome.collect(), retrieveFilesHuman.out.gtf.collect())
-            genome_fasta = retrieveFilesHuman.out.genome.collect()
-            genome_gtf = retrieveFilesHuman.out.gtf.collect()
-        }
-        else {
-            genome_fasta = channel.from(file("${params.inputDir}/*.fna"))
-            genome_gtf = channel.from(file("${params.inputDir}/*.gtf"))
-        }
-    
-        alignmentSetupSTAR(genome_fasta, genome_gtf)
-        alignmentSTAR(fqs, alignment_setup.out.index)
-        quantify(genome_gtf, alignmentSTAR.out.bam)
-    }
 }
 
 /*
@@ -359,13 +341,4 @@ Main workflow.
 workflow {
     QC()
     processing()
-}
-
-workflow testWF {
-    channel.fromPath("${params.inputDir}/*.fastq")
-        .map {
-            val1 ->
-                tuple(val1.getName(), val1, null)
-        }
-        .view()
 }
