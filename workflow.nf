@@ -311,7 +311,7 @@ workflow processing {
         fqs = channel.fromFilePairs("${params.inputDir}/*{1,2}.fastq", flat: true)
     }
     else {
-        fqs = channel.fromPath("${params.inputDir}/*.fastq", flat: true)
+        fqs = channel.fromPath("${params.inputDir}/*.fastq")
             .map {
                 val1 ->
                     tuple(val1.getName(), val1, null)
