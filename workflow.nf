@@ -170,6 +170,7 @@ process alignmentHISAT {
     )
 
     input:
+    val paired
     path indices
     tuple val(sampleID), path(read1), path(read2)
 
@@ -177,14 +178,14 @@ process alignmentHISAT {
     path "*.sam", emit: sam
     
     script:
-    if (read2 == null) {
+    if (paired) {
         """
-        hisat2 -x genome -U $read1 -S ${sampleID}.sam
+        hisat2 -x genome -1 $read1 -2 $read2 -S ${sampleID}.sam
         """
     }
     else {
         """
-        hisat2 -x genome -1 $read1 -2 $read2 -S ${sampleID}.sam
+        hisat2 -x genome -U $read1 -S ${sampleID}.sam
         """
     }
 
@@ -328,7 +329,7 @@ workflow processing {
             genome_gtf = channel.from(file("${params.inputDir}/*.gtf"))
         }
         alignmentSetupHISAT()
-        alignmentHISAT(alignmentSetupHISAT.out.indices.collect(), fqs)
+        alignmentHISAT(params.paired, alignmentSetupHISAT.out.indices.collect(), fqs)
         convertToBAM(alignmentHISAT.out.sam)
         quantify(params.paired, genome_gtf, convertToBAM.out.bam)
     }
