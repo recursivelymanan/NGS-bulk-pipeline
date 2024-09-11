@@ -1,12 +1,12 @@
 
 // Show help message
 if (params.help == true) {
-    print("To use the quality control pipeline, use the --input-dir parameter to indicate the path to the directory containing your .fastq files. Optionally, set an output directory using --output-dir")
+    print("To use the quality control pipeline, use the --inputDir parameter to indicate the path to the directory containing your .fastq files. Optionally, set an output directory using --outputDir")
 }
 
 // Throw error if no input_folder is provided
-if (params.input_dir == null) {  
-    throw new RuntimeException("Please provide the path to the folder containing .fastq files by using --input-dir")
+if (params.inputDir == null) {  
+    throw new RuntimeException("Please provide the path to the folder containing .fastq files by using --inputDir")
 }
 
 // Throw error if aligner is not hisat2 or star
@@ -14,14 +14,14 @@ if (params.aligner != "star" && params.aligner != "hisat2") {
     throw new RuntimeException("Invalid aligner. --aligner must be set to 'star' or 'hisat2'")
 }
 
-println("Reading input from directory: ${params.input-dir}")
-println("Saving all workflow output to directory: ${params.output-dir}\n")
+println("Reading input from directory: ${params.inputDir}")
+println("Saving all workflow output to directory: ${params.outputDir}\n")
 
-if (params.download_reference_files) {
-    println("--download-reference-files option was selected, necessary files will be downloaded.\n")
+if (params.downloadReferenceFiles) {
+    println("--downloadReferenceFiles option was selected, necessary files will be downloaded.\n")
 }
 else {
-    println("--download-reference-files option was not selected, using provided genome files in ${params.input-dir}\n")
+    println("--downloadReferenceFiles option was not selected, using provided genome files in ${params.inputDir}\n")
 }
 
 println("STARTING WORKFLOW...\n")
@@ -33,7 +33,7 @@ Process for running FastQC quality control on given input files. Outputs HTML QC
 */
 process fastQC {
     publishDir(
-        path: "${params.output-dir}/qc_reports",
+        path: "${params.outputDir}/qc_reports",
         mode: "copy"
     )
 
@@ -54,7 +54,7 @@ Process for combining previously generated HTML QC reports into one QC summary u
 */
 process multiQC {
     publishDir (
-        path: "${params.output-dir}/qc_reports",
+        path: "${params.outputDir}/qc_reports",
         mode: "copy"
     )
 
@@ -90,7 +90,7 @@ Rename the genome files retrieved by retrieveFilesHuman() in order to remove the
 */
 process renameGenomeFiles {
     publishDir (
-        path: "${params.output-dir}/ref",
+        path: "${params.outputDir}/ref",
         mode: "copy"
     )
 
@@ -127,7 +127,7 @@ Rename the GTF file retrieved by retrieveGTFhuman() in order to remove the long 
 */
 process renameGTFfile {
     publishDir (
-        path: "${params.output-dir}/ref",
+        path: "${params.outputDir}/ref",
         mode: "copy"
     )
 
@@ -147,7 +147,7 @@ Prepare the genome index directory to prepare for mapping with HISAT2. Genome in
 */
 process alignmentSetupHISAT {
     publishDir(
-        path: "${params.output-dir}/HISAT2/genome",
+        path: "${params.outputDir}/HISAT2/genome",
         mode: "copy"
     )
 
@@ -186,7 +186,7 @@ Convert SAM files to BAM format.
 */
 process convertToBAM {
     publishDir(
-	path: "${params.output-dir}/HISAT2",
+	path: "${params.outputDir}/HISAT2",
 	mode: "copy"
     )
 
@@ -208,7 +208,7 @@ Prepare the genome index directory to prepare for mapping, using STAR with --run
 */
 process alignmentSetupSTAR {
     publishDir(
-        path: "${params.output-dir}/STAR/genome",
+        path: "${params.outputDir}/STAR/genome",
         mode: "copy"
     )
 
@@ -233,7 +233,7 @@ Map reads using STAR.
 */
 process alignmentSTAR {
     publishDir(
-        path: "${params.output-dir}/STAR",
+        path: "${params.outputDir}/STAR",
         mode: "copy"
     )
 
@@ -257,7 +257,7 @@ Quantify expression with featureCounts
 */
 process quantify {
     publishDir(
-        path: "${params.output-dir}/featureCounts",
+        path: "${params.outputDir}/featureCounts",
         mode: "copy"
     )
 
@@ -266,7 +266,7 @@ process quantify {
     path bam
 
     output:
-    path "*.txt", emit: counts
+    path "*.txt"
 
     script:
     def out_name = bam.getBaseName()
@@ -280,7 +280,7 @@ process quantify {
 Workflow for running QC with FastQC and MultiQC. 
 */
 workflow QC {
-    fqs = channel.from(file("${params.input-dir}/*.fastq"))
+    fqs = channel.from(file("${params.inputDir}/*.fastq"))
     
     fastQC(fqs)
     multiQC(fastQC.out.html.collect(), fastQC.out.zip.collect())
@@ -299,7 +299,7 @@ workflow processing {
             genome_gtf = retrieveGTFhuman.out.gtf.collect()
         }
         else {
-            genome_gtf = channel.from(file("${params.input-dir}/*.gtf"))
+            genome_gtf = channel.from(file("${params.inputDir}/*.gtf"))
         }
         alignmentSetupHISAT()
         alignmentHISAT(alignmentSetupHISAT.out.indices.collect(), paired_fqs)
@@ -309,15 +309,15 @@ workflow processing {
 
     // Processing workflow using STAR
     else {
-        if (params.download_reference_files) {
+        if (params.downloadReferenceFiles) {
             retrieveFilesHuman()
             renameGenomeFiles(retrieveFilesHuman.out.genome.collect(), retrieveFilesHuman.out.gtf.collect())
             genome_fasta = retrieveFilesHuman.out.genome.collect()
             genome_gtf = retrieveFilesHuman.out.gtf.collect()
         }
         else {
-            genome_fasta = channel.from(file("${params.input-dir}/*.fna"))
-            genome_gtf = channel.from(file("${params.input-dir}/*.gtf"))
+            genome_fasta = channel.from(file("${params.inputDir}/*.fna"))
+            genome_gtf = channel.from(file("${params.inputDir}/*.gtf"))
         }
     
         alignmentSetupSTAR(genome_fasta, genome_gtf)
