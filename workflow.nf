@@ -161,24 +161,34 @@ process alignmentSetupHISAT {
 }
 
 /*
-Map reads using HISAT2.
+Map reads using HISAT2. Process can handle single or paired-end reads, as determined by the sampleID value, which is set to null in the case of single reads.
 */
 process alignmentHISAT {
     publishDir(
-        path: "${params.output-dir}/HISAT2",
+        path: "${params.outputDir}/HISAT2",
         mode: "copy"
     )
 
     input:
+    val paired
     path indices
     tuple val(sampleID), path(read1), path(read2)
 
     output:
     path "*.sam", emit: sam
     
-    """
-    hisat2 -x genome -1 $read1 -2 $read2 -S ${sampleID}.sam
-    """
+    script:
+    if (paired) {
+        """
+        hisat2 -x genome -1 $read1 -2 $read2 -S ${sampleID}.sam
+        """
+    }
+    else {
+        """
+        hisat2 -x genome -U $read1 -S ${sampleID}.sam
+        """
+    }
+
 }
 
 /*
@@ -262,6 +272,7 @@ process quantify {
     )
 
     input:
+    val paired
     path gtf
     path bam
 
@@ -270,10 +281,17 @@ process quantify {
 
     script:
     def out_name = bam.getBaseName()
-    """
-    featureCounts -a $gtf -o ${out_name}.txt $bam
-    """
 
+    if (paired) {
+        """
+        featureCounts -a $gtf -o ${out_name}.txt -p $bam
+        """
+    }
+    else {
+        """
+        featureCounts -a $gtf -o ${out_name}.txt $bam
+        """        
+    }
 }
 
 /*
@@ -290,7 +308,16 @@ workflow QC {
 Workflow for post-QC processing with indexing, alignment and quantification. 
 */
 workflow processing {
-    paired_fqs = channel.fromFilePairs("${params.input-dir}/*{1,2}.fastq", flat: true)
+    if (params.paired) {
+        fqs = channel.fromFilePairs("${params.inputDir}/*{1,2}.fastq", flat: true)
+    }
+    else {
+        fqs = channel.fromPath("${params.inputDir}/*.fastq", flat: true)
+            .map {
+                val1 ->
+                    tuple(val1.getName(), val1, null)
+            }
+    }
     
     // Processing workflow using HISAT2 
     if (params.aligner == "hisat2") {
@@ -302,9 +329,9 @@ workflow processing {
             genome_gtf = channel.from(file("${params.inputDir}/*.gtf"))
         }
         alignmentSetupHISAT()
-        alignmentHISAT(alignmentSetupHISAT.out.indices.collect(), paired_fqs)
+        alignmentHISAT(params.paired, alignmentSetupHISAT.out.indices.collect(), fqs)
         convertToBAM(alignmentHISAT.out.sam)
-        quantify(genome_gtf, convertToBAM.out.bam)
+        quantify(params.paired, genome_gtf, convertToBAM.out.bam)
     }
 
     // Processing workflow using STAR
@@ -321,7 +348,7 @@ workflow processing {
         }
     
         alignmentSetupSTAR(genome_fasta, genome_gtf)
-        alignmentSTAR(paired_fqs, alignment_setup.out.index)
+        alignmentSTAR(fqs, alignment_setup.out.index)
         quantify(genome_gtf, alignmentSTAR.out.bam)
     }
 }
@@ -332,4 +359,13 @@ Main workflow.
 workflow {
     QC()
     processing()
+}
+
+workflow testWF {
+    channel.fromPath("${params.inputDir}/*.fastq")
+        .map {
+            val1 ->
+                tuple(val1.getName(), val1, null)
+        }
+        .view()
 }
