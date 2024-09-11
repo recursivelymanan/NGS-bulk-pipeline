@@ -214,55 +214,6 @@ process convertToBAM {
 }
 
 /*
-Prepare the genome index directory to prepare for mapping, using STAR with --runMode genomeGenerate.
-*/
-process alignmentSetupSTAR {
-    publishDir(
-        path: "${params.outputDir}/STAR/genome",
-        mode: "copy"
-    )
-
-    input:
-    path genome_fasta
-    path genome_gtf
-
-    output:
-    path "STAR", emit: index
-
-    """
-    STAR --runMode genomeGenerate \
-    --genomeDir . \
-    --genomeFastaFiles $genome_fasta
-    --sjdbGTFfile $genome_gtf
-    --sjdbOverhang 99
-    """
-}
-
-/*
-Map reads using STAR.
-*/
-process alignmentSTAR {
-    publishDir(
-        path: "${params.outputDir}/STAR",
-        mode: "copy"
-    )
-
-    input:
-    path paired_fqs
-    path genome_index
-
-    output:
-    path "*.bam", emit: bam
-
-    """
-    STAR \
-    --genomeDir $genome_index \
-    --readFilesIn $paired_fqs \
-    --outSAMtype BAM
-    """
-}
-
-/*
 Quantify expression with featureCounts
 */
 process quantify {
