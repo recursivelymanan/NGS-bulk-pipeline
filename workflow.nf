@@ -315,7 +315,7 @@ workflow processing {
         fqs = channel.fromPath("${params.inputDir}/*.fastq")
             .map {
                 val1 ->
-                    tuple(val1.getName(), val1, null)
+                    tuple(val1.getName(), val1, file("assets/NO_FILE"))
             }
     }
     
