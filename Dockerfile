@@ -13,10 +13,11 @@ RUN conda create -n nf bioconda::fastqc bioconda::star bioconda::multiqc biocond
 # Bring nextflow workflow files and test data into container
 COPY workflow.nf nextflow.config /app/
 COPY data/ /app/data/
+COPY assets/ /app/assets/
 
 WORKDIR /app
 
 # Run the nextflow executable when the container starts. Parameters defined at runtime
 ENTRYPOINT ["conda"]
 
-CMD ["run", "-n", "nf", "--live-stream", "nextflow", "run", "workflow.nf", "--inputDir", "data", "--downloadReferenceFiles"]
+CMD ["run", "-n", "nf", "--live-stream", "nextflow", "run", "workflow.nf", "--inputDir", "data", "--downloadReferenceFiles", "--paired"]
