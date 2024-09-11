@@ -320,7 +320,7 @@ workflow processing {
     
     // Processing workflow using HISAT2 
     if (params.aligner == "hisat2") {
-        if (params.download_reference_files) {
+        if (params.downloadReferenceFiles) {
             retrieveGTFhuman()
             genome_gtf = retrieveGTFhuman.out.gtf.collect()
         }
