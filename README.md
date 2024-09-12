@@ -32,13 +32,14 @@ You can run this workflow directly through Nextflow or using the provided Docker
 
 #### Options
 
-| Option                     | Default           | Description                                                                                                                                   |
-| -------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--help`                   | N/A               | Display the help message.                                                                                                                     |
-| `--outputDir <output dir>` | `workflow_output` | Specify the output directory.                                                                                                                 |
-| `--downloadReferenceFiles` | N/A               | Downloaded reference files from NCBI. If this option is not selected, required genome files are assumed to be located in the input directory. |
-| `--aligner <aligner>`      | `hisat2`          | Pick which program to use for alignment, currently only HISAT2 is supported.                                                                  |
-| `--paired`                 | N/A               | Denotes that experiment is paired-end. If not selected, it is assumed that the experiment is single-end reads.                                |
+| Option                     | Default             | Description                                                                                                                                          |
+| -------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--help`                   | N/A                 | Display the help message.                                                                                                                            |
+| `--outputDir <output dir>` | `./workflow_output` | Specify the output directory.                                                                                                                        |
+| `--genomeDir`              | `./genome_files`    | Specify the directory containing genome files, or if `--downloadReferenceFiles` is selected, the directory where genome files will be downloaded to. |
+| `--downloadReferenceFiles` | N/A                 | Downloaded reference files from NCBI. If this option is not selected, required genome files are assumed to be located in the input directory.        |
+| `--aligner <aligner>`      | `hisat2`            | Pick which program to use for alignment, currently "hisat2" and "star" are supported.                                                                |
+| `--paired`                 | N/A                 | Denotes that experiment is paired-end. If not selected, it is assumed that the experiment is single-end reads.                                       |
 
 #### Custom Arguments
 
@@ -52,8 +53,6 @@ Each main program used in the workflow has an associated parameter with which yo
 | featureCounts | --fc      |
 
 > **_NOTE:_** Do not pass custom arguments related to the format of reads (single vs. paired end), as these options are taken care of based on the --paired parameter.
-
-##### Example:
 
 Using MultiQC as an example, if you wanted to change the title of the MultiQC report you could do so with the MultiQC --title parameter as follows:
 
