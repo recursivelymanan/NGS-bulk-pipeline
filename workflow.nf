@@ -9,8 +9,8 @@ if (params.inputDir == null) {
     throw new RuntimeException("Please provide the path to the folder containing .fastq files by using --inputDir")
 }
 
-// Throw error if aligner is not hisat2
-if (params.aligner != "hisat2") {
+// Throw error if aligner is not hisat2 or star
+if (params.aligner != "hisat2" && params.aligner != "star") {
     throw new RuntimeException("Invalid aligner. --aligner must be set to 'star' or 'hisat2'")
 }
 
@@ -25,8 +25,6 @@ else {
 }
 
 println("STARTING WORKFLOW...\n")
-
-
 
 /*
 Process for running FastQC quality control on given input files. Outputs HTML QC report to folder qc_output.
@@ -194,6 +192,61 @@ process alignmentHISAT {
 
 }
 
+process alignmentSetupSTAR {
+    publishDir(
+        path: "${params.outputDir}/STAR/genome_files",
+        mode: "copy"
+    )
+
+    input:
+    path genome
+    path gtf
+    val args
+
+    output:
+    path "STAR/*", emit: genomeFiles
+
+    """
+    STAR --runMode genomeGenerate \
+    --genomeDir ./STAR/ \
+    --genomeFastaFiles $genome \
+    --sjdbGTFfile $gtf $args
+    """
+}
+
+process alignmentSTAR {
+    publishDir(
+        path: "${params.outputDir}/STAR",
+        mode: "copy"
+    )
+
+    input:
+    val paired
+    path genomeFiles
+    tuple val(sampleID), path(read1), path(read2)
+    val args
+
+    output:
+    path "*.{sam,bam}", emit: sam
+
+    script:
+    if (paired) {
+        """
+        STAR --genomeDir $genomeFiles \
+        --readFilesIn $read1 $read2 \
+        --outFileNamePrefix ./ $args
+        """
+    }
+    else {
+        """
+        STAR --genomeDir $genomeFiles \
+        --readFilesIn $read1 \
+        --outFileNamePrefix ./ $args
+        """        
+    }
+    
+}
+
 /*
 Convert SAM files to BAM format.
 */
@@ -210,10 +263,18 @@ process convertToBAM {
     path "*.bam", emit: bam
 
     script:
+    def fileType = sam.getExtension()
     def name = sam.getBaseName()
-    """
-    samtools view -bSh $sam > ${name}.bam
-    """
+    if (fileType == "sam") {
+        """"
+        samtools view -bSh $sam > ${name}.bam
+        """
+    }
+    else {
+        """
+        echo Conversion not necessary as input file is already .bam
+        """
+    }
 }
 
 /*
@@ -286,6 +347,22 @@ workflow processing {
         alignmentSetupHISAT()
         alignmentHISAT(params.paired, alignmentSetupHISAT.out.indices.collect(), fqs, params.hs2)
         convertToBAM(alignmentHISAT.out.sam)
+        quantify(params.paired, genome_gtf, convertToBAM.out.bam, params.fc)
+    }
+    else if (params.aligner == "star") {
+        if (params.downloadReferenceFiles) {
+            retrieveFilesHuman()
+            genome_gtf = retrieveFilesHuman.out.gtf
+            genome_fa = retrieveFilesHuman.out.genome
+        }
+        else {
+            genome_gtf = channel.fromPath("${params.inputdir}/*.gtf")
+            genome_fa = channel.fromPath("${params.inputDir}/*.fa")
+        }
+
+        alignmentSetupSTAR(genome_gtf, genome_fa, params.ss)
+        alignmentSTAR(params.paired, alignmentSetupSTAR.out.genomeFiles, fqs, params.star)
+        convertToBAM(alignmentSTAR.out.sam)
         quantify(params.paired, genome_gtf, convertToBAM.out.bam, params.fc)
     }
 }
