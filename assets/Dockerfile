@@ -13,9 +13,9 @@ RUN apt-get update && \
 RUN conda create -n nf bioconda::fastqc bioconda::star bioconda::multiqc bioconda::subread conda-forge::ncbi-datasets-cli bioconda::hisat2 bioconda::samtools -y
 
 # Bring nextflow workflow files and test data into container
-COPY workflow.nf nextflow.config /app/
-COPY data/ /app/data/
-COPY assets/ /app/assets/
+COPY ./../workflow.nf nextflow.config /app/
+COPY ./../data/ /app/data/
+COPY ./NO_FILE /app/assets/
 
 WORKDIR /app
 
