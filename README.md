@@ -40,8 +40,25 @@ You can run this workflow directly through Nextflow or using the provided Docker
 | `--aligner <aligner>`      | `hisat2`          | Pick which program to use for alignment, currently only HISAT2 is supported.                                                                  |
 | `--paired`                 | N/A               | Denotes that experiment is paired-end. If not selected, it is assumed that the experiment is single-end reads.                                |
 
+#### Custom Arguments
+
+Each main program used in the workflow has an associated parameter with which you can add custom arguments. Please refer to the documentation for each program to ensure arguments are being passed properly.
+
+| Program       | Parameter |
+| ------------- | --------- |
+| FastQC        | --fqc     |
+| MultiQC       | --mqc     |
+| HISAT2        | --hs2     |
+| featureCounts | --fc      |
+
+##### Example:
+
+Using MultiQC as an example, if you wanted to change the title of the MultiQC report you could do so with the MultiQC --title parameter as follows:
+
+`nextflow run workflow.nf --inputDir data --mqc "--title CustomTitle"`
+
 ## Planned Additions
 
 - Functionality for use with the STAR aligner
 - A `nextflow-aws.config` file to enable easier use with AWS
-- Ability to pass on more arguments into the various tools to allow for more customizable workflows
+- ~~Ability to pass on more arguments into the various tools to allow for more customizable workflows~~ Added 9-12-24

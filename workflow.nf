@@ -39,13 +39,14 @@ process fastQC {
 
     input:
     path fqs
+    val args
 
     output:
     path "*_fastqc.zip", emit: zip
     path "*_fastqc.html", emit: html
 
     """
-    fastqc $fqs
+    fastqc $args $fqs
     """
 }
 
@@ -61,12 +62,13 @@ process multiQC {
     input:
     path fq_html
     path fq_zip
+    val args
 
     output:
-    path "multiqc_report.html"
+    path "*.html"
 
     """
-    multiqc .
+    multiqc $args .
     """
 }
 
@@ -173,6 +175,7 @@ process alignmentHISAT {
     val paired
     path indices
     tuple val(sampleID), path(read1), path(read2)
+    val args
 
     output:
     path "*.sam", emit: sam
@@ -180,12 +183,12 @@ process alignmentHISAT {
     script:
     if (paired) {
         """
-        hisat2 -x genome -1 $read1 -2 $read2 -S ${sampleID}.sam
+        hisat2 -x genome -1 $read1 -2 $read2 -S ${sampleID}.sam $args
         """
     }
     else {
         """
-        hisat2 -x genome -U $read1 -S ${sampleID}.sam
+        hisat2 -x genome -U $read1 -S ${sampleID}.sam $args
         """
     }
 
@@ -226,6 +229,7 @@ process quantify {
     val paired
     path gtf
     path bam
+    val args
 
     output:
     path "*.txt"
@@ -235,12 +239,12 @@ process quantify {
 
     if (paired) {
         """
-        featureCounts -a $gtf -o ${out_name}.txt -p $bam
+        featureCounts -a $gtf -o ${out_name}.txt -p $args $bam 
         """
     }
     else {
         """
-        featureCounts -a $gtf -o ${out_name}.txt $bam
+        featureCounts -a $gtf -o ${out_name}.txt $args $bam
         """        
     }
 }
@@ -249,10 +253,10 @@ process quantify {
 Workflow for running QC with FastQC and MultiQC. 
 */
 workflow QC {
-    fqs = channel.from(file("${params.inputDir}/*.fastq"))
+    fqs = channel.fromPath("${params.inputDir}/*.fastq")
     
-    fastQC(fqs)
-    multiQC(fastQC.out.html.collect(), fastQC.out.zip.collect())
+    fastQC(fqs, params.fqc)
+    multiQC(fastQC.out.html.collect(), fastQC.out.zip.collect(), params.mqc)
 }
 
 /*
@@ -280,9 +284,9 @@ workflow processing {
             genome_gtf = channel.from(file("${params.inputDir}/*.gtf"))
         }
         alignmentSetupHISAT()
-        alignmentHISAT(params.paired, alignmentSetupHISAT.out.indices.collect(), fqs)
+        alignmentHISAT(params.paired, alignmentSetupHISAT.out.indices.collect(), fqs, params.hs2)
         convertToBAM(alignmentHISAT.out.sam)
-        quantify(params.paired, genome_gtf, convertToBAM.out.bam)
+        quantify(params.paired, genome_gtf, convertToBAM.out.bam, params.fc)
     }
 }
 
