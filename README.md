@@ -51,6 +51,8 @@ Each main program used in the workflow has an associated parameter with which yo
 | HISAT2        | --hs2     |
 | featureCounts | --fc      |
 
+> **_NOTE:_** Do not pass custom arguments related to the format of reads (single vs. paired end), as these options are taken care of based on the --paired parameter.
+
 ##### Example:
 
 Using MultiQC as an example, if you wanted to change the title of the MultiQC report you could do so with the MultiQC --title parameter as follows:
