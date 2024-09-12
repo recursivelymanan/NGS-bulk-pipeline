@@ -87,29 +87,6 @@ process retrieveFilesHuman {
 }
 
 /*
-Rename the genome files retrieved by retrieveFilesHuman() in order to remove the long directory chain resulting from the ncbi download. (Used for STAR workflow)
-*/
-process renameGenomeFiles {
-    publishDir (
-        path: "${params.outputDir}/ref",
-        mode: "copy"
-    )
-
-    input:
-    path genome
-    path gtf
-
-    output:
-    path "*.fna", emit: genome
-    path "*.gtf", emit: gtf
-
-    """
-    cp $genome genome.fna
-    cp $gtf genome.gtf
-    """
-}
-
-/*
 Retrieve only the gene transfer format .gtf file for the human genome for downstream processes. (Used for HISAT2 workflow)
 */
 process retrieveGTFhuman {
@@ -120,26 +97,6 @@ process retrieveGTFhuman {
     datasets download genome accession GCF_000001405.40 --dehydrated --include gtf --filename human_GRCh38_dataset.zip
     unzip human_GRCh38_dataset.zip -d human_genome
     datasets rehydrate --directory human_genome/
-    """
-}
-
-/*
-Rename the GTF file retrieved by retrieveGTFhuman() in order to remove the long directory chain resulting from the ncbi download. (Used for HISAT2 workflow)
-*/
-process renameGTFfile {
-    publishDir (
-        path: "${params.outputDir}/ref",
-        mode: "copy"
-    )
-
-    input:
-    path gtf
-
-    output:
-    path "*.gtf", emit: gtf
-
-    """
-    cp $gtf genome.gtf
     """
 }
 
