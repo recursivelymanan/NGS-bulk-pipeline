@@ -18,10 +18,11 @@ println("Reading input from directory: ${params.inputDir}")
 println("Saving all workflow output to directory: ${params.outputDir}\n")
 
 if (params.downloadReferenceFiles) {
-    println("--downloadReferenceFiles option was selected, necessary files will be downloaded.\n")
+    println("--downloadReferenceFiles option was selected, necessary files will be downloaded to ${params.genomeDir}\n")
+
 }
 else {
-    println("--downloadReferenceFiles option was not selected, using provided genome files in ${params.inputDir}\n")
+    println("--downloadReferenceFiles option was not selected, using provided genome files in ${params.genomeDir}\n")
 }
 
 println("STARTING WORKFLOW...\n")
@@ -342,7 +343,7 @@ workflow processing {
             genome_gtf = retrieveGTFhuman.out.gtf.collect()
         }
         else {
-            genome_gtf = channel.from(file("${params.inputDir}/*.gtf"))
+            genome_gtf = channel.fromPath("${params.genomeDir}/*.gtf")
         }
         alignmentSetupHISAT()
         alignmentHISAT(params.paired, alignmentSetupHISAT.out.indices.collect(), fqs, params.hs2)
@@ -356,11 +357,11 @@ workflow processing {
             genome_fa = retrieveFilesHuman.out.genome
         }
         else {
-            genome_gtf = channel.fromPath("${params.inputdir}/*.gtf")
-            genome_fa = channel.fromPath("${params.inputDir}/*.fa")
+            genome_gtf = channel.fromPath("${params.genomeDir}/*.gtf")
+            genome_fa = channel.fromPath("${params.genomeDir}/*.fa")
         }
 
-        alignmentSetupSTAR(genome_gtf, genome_fa, params.ss)
+        alignmentSetupSTAR(genome_fa, genome_gtf, params.ss)
         alignmentSTAR(params.paired, alignmentSetupSTAR.out.genomeFiles, fqs, params.star)
         convertToBAM(alignmentSTAR.out.sam)
         quantify(params.paired, genome_gtf, convertToBAM.out.bam, params.fc)
