@@ -6,12 +6,13 @@ Nextflow pipeline meant to streamline the RNAseq QC/processing workflow, includi
 
 You can run this workflow directly through Nextflow or using the provided Dockerfile.
 
-### Running with Nextflow
+### Running with Nextflow (Recommended)
 
 1. [Install nextflow](https://www.nextflow.io/docs/latest/install.html)
 2. Using the package manager of your choice, create an environment with the dependencies listed in the provided `env.yml`. Using miniconda, this would look like: `conda env create -f env.yml`
 3. Clone this repo to your local machine using `git clone https://github.com/recursivelymanan/NGS-bulk-pipeline`.
 4. Navigate into the repo directory and run the workflow using `nextflow run workflow.nf --inputDir <input directory>` and any additional options.
+5. If you run into errors at some step of the process, you can easily resume the nextflow run from the last cached step by running the same command and adding the `-resume` option once you have resolved the error. You can learn more about how nextflow caches steps and how the work directory works [here](https://www.nextflow.io/docs/latest/cache-and-resume.html). 
 
 ### Running with Docker
 
