@@ -64,4 +64,5 @@ Using MultiQC as an example, if you wanted to change the title of the MultiQC re
 
 - Functionality for use with the STAR aligner
 - A `nextflow-aws.config` file to enable easier use with AWS
+- DESeq2 support
 - ~~Ability to pass on more arguments into the various tools to allow for more customizable workflows~~ Added 9-12-24
