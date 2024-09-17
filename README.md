@@ -10,7 +10,7 @@ Additionally, I developed this because of previous experience using Snakemake wo
 
 ## Installing and running the workflow
 
-You can run this workflow directly through Nextflow or using the provided Dockerfile.
+You can run this workflow directly through Nextflow or using the provided Dockerfile. Running directly with the nextflow CLI is the best experience, and makes it much easier to solve any errors that may arise, as well as generally looking better. However, a Dockerfile is available if needed. 
 
 ### Running with Nextflow (Recommended)
 
