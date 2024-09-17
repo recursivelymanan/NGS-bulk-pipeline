@@ -232,7 +232,7 @@ process quantify {
     val args
 
     output:
-    path "*.txt"
+    path "*.txt", emit: counts
 
     script:
     def out_name = bam.getBaseName()
@@ -250,6 +250,35 @@ process quantify {
 }
 
 /*
+Differential expression analysis with DESeq2
+*/
+process diffExp {
+    publishDir(
+        path: "${params.outputDir}/DESeq2",
+        mode: "copy"
+    )
+
+    input:
+    path counts
+    path exp_design
+
+    output:
+    path "*.csv", emit: results
+
+    script:
+    if (params.comparisons != null) {
+        """
+        Rscript ./assets/difexp_analysis.R $counts $exp_design $params.comparisons
+        """
+    }
+    else {
+        """
+        Rscript ./assets/difexp_analysis.R $counts $exp_design
+        """
+    }
+}
+
+/*
 Workflow for running QC with FastQC and MultiQC. 
 */
 workflow QC {
@@ -263,6 +292,7 @@ workflow QC {
 Workflow for post-QC processing with indexing, alignment and quantification. 
 */
 workflow processing {
+    main:
     if (params.paired) {
         fqs = channel.fromFilePairs("${params.inputDir}/*{1,2}.fastq", flat: true)
     }
@@ -288,6 +318,25 @@ workflow processing {
         convertToBAM(alignmentHISAT.out.sam)
         quantify(params.paired, genome_gtf, convertToBAM.out.bam, params.fc)
     }
+
+    emit:
+    quantify.out.counts
+}
+
+workflow diffExp {
+    take: 
+    counts
+
+    main:
+    diffExp(counts, params.expDesign)
+}
+
+/*
+Workflow without differential expression analysis. 
+*/
+workflow noDiffExp {
+    QC()
+    processing()
 }
 
 /*
@@ -296,4 +345,5 @@ Main workflow.
 workflow {
     QC()
     processing()
+    diffExp(processing.out)
 }
