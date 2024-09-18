@@ -1,4 +1,12 @@
 
+println("Saving command used to execute this run in workflow_logs/runcmd_${currentDate}.txt")
+
+def currentDate = new Date().format("MM-dd-yyyy-HH:mm:ss")
+
+new File("workflow_logs/runcmd_${currentDate}.txt").withWriter { writer ->
+        writer.write(workflow.commandLine)
+    }
+
 // Show help message
 if (params.help == true) {
     print("To use the quality control pipeline, use the --inputDir parameter to indicate the path to the directory containing your .fastq files. Optionally, set an output directory using --outputDir")
@@ -23,6 +31,7 @@ if (params.downloadReferenceFiles) {
 else {
     println("--downloadReferenceFiles option was not selected, using provided genome files in ${params.inputDir}\n")
 }
+
 
 println("STARTING WORKFLOW...\n")
 
@@ -252,7 +261,7 @@ process quantify {
 /*
 Differential expression analysis with DESeq2
 */
-process diffExp {
+process diffExpr {
     publishDir(
         path: "${params.outputDir}/DESeq2",
         mode: "copy"
@@ -328,7 +337,7 @@ workflow diffExp {
     counts
 
     main:
-    diffExp(counts, params.expDesign)
+    diffExpr(counts, params.expDesign)
 }
 
 /*
@@ -343,6 +352,8 @@ workflow noDiffExp {
 Main workflow. 
 */
 workflow {
+    println("By default, DESeq2 analysis is included in the workflow. If you want to run DESeq2, make sure you have a properly set up meta data table. Refer to the README for more instructions.\n")
+
     QC()
     processing()
     diffExp(processing.out)
