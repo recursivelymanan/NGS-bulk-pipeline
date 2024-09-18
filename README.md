@@ -5,8 +5,6 @@ Nextflow pipeline meant to streamline the RNAseq QC/processing workflow, includi
 ## Motivation
 
 I developed this workflow primarly to get more experience in Nextflow, Docker and AWS. I used AWS EC2 instances to help with a lot of the development/testing, and plan on adding compatibility for use with AWS Fargate in the future.  
-  
-Additionally, I developed this because of previous experience using Snakemake workflows in which customizing the various commands for the different tools used was somewhat tedious. I've solved this by allowing custom arguments for each tool to be passed as nextflow arguments, allowing for the user to, as an example, easily use `--ss "--runThreadN <n>"` to modify the STAR genomeGenerate command without having to dive into the code itself. 
 
 ## Installing and running the workflow
 
