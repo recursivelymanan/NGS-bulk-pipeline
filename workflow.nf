@@ -1,9 +1,9 @@
+def currentDate = new Date().format("MM-dd-yyyy-HH:mm:ss")
 
 println("Saving command used to execute this run in workflow_logs/runcmd_${currentDate}.txt")
 
-def currentDate = new Date().format("MM-dd-yyyy-HH:mm:ss")
-
-new File("workflow_logs/runcmd_${currentDate}.txt").withWriter { writer ->
+"mkdir -p ${params.logDir}".execute().waitFor()
+new File("${params.logDir}/runcmd_${currentDate}.txt").withWriter { writer ->
         writer.write(workflow.commandLine)
     }
 
