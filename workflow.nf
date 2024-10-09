@@ -261,6 +261,9 @@ process quantify {
 /*
 Differential expression analysis with DESeq2
 */
+
+// TO DO !!!! -> need to figure out channel input into deseq2... currently bam files going in one by one!
+
 process diffExpr {
     publishDir(
         path: "${params.outputDir}/DESeq2",
@@ -277,12 +280,12 @@ process diffExpr {
     script:
     if (params.comparisons != null) {
         """
-        Rscript ./assets/difexp_analysis.R $counts $exp_design $params.comparisons
+        Rscript ./R/difexp_analysis.R $counts $exp_design $params.comparisons
         """
     }
     else {
         """
-        Rscript ./assets/difexp_analysis.R $counts $exp_design
+        Rscript ./R/difexp_analysis.R $counts $exp_design
         """
     }
 }
@@ -337,6 +340,7 @@ workflow diffExp {
     counts
 
     main:
+
     diffExpr(counts, params.expDesign)
 }
 
