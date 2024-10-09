@@ -259,11 +259,29 @@ process quantify {
 }
 
 /*
+Merge count tables from featureCounts for input into DESeq2
+*/
+process mergeCounts {
+    publishDir(
+        path: "${params.outputDir}/featureCounts",
+        mode: "copy"
+    )
+
+    input:
+    path py_script
+    path countfiles
+
+    output:
+    path "*.txt", emit: counts
+
+    """
+    python $py_script $countfiles
+    """
+}
+
+/*
 Differential expression analysis with DESeq2
 */
-
-// TO DO !!!! -> need to figure out channel input into deseq2... currently bam files going in one by one!
-
 process diffExpr {
     publishDir(
         path: "${params.outputDir}/DESeq2",
@@ -280,12 +298,12 @@ process diffExpr {
     script:
     if (params.comparisons != null) {
         """
-        Rscript ./R/difexp_analysis.R $counts $exp_design $params.comparisons
+        Rscript ./scripts/difexp_analysis.R $counts $exp_design $params.comparisons
         """
     }
     else {
         """
-        Rscript ./R/difexp_analysis.R $counts $exp_design
+        Rscript ./scripts/difexp_analysis.R $counts $exp_design
         """
     }
 }
@@ -329,10 +347,11 @@ workflow processing {
         alignmentHISAT(params.paired, alignmentSetupHISAT.out.indices.collect(), fqs, params.hs2)
         convertToBAM(alignmentHISAT.out.sam)
         quantify(params.paired, genome_gtf, convertToBAM.out.bam, params.fc)
+        mergeCounts(channel.from(file("./scripts/merge_counts.py")), quantify.out.counts)
     }
 
     emit:
-    quantify.out.counts
+    mergeCounts.out.counts
 }
 
 workflow diffExp {
