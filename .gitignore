@@ -12,3 +12,4 @@ workflow_output/*
 data/*.zip
 data/*.html
 grch38
+workflow_logs/*
