@@ -42,7 +42,8 @@ You can run this workflow directly through Nextflow or using the provided Docker
 | Option                     | Default           | Description                                                                                                                                   |
 | -------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--help`                   | N/A               | Display the help message.                                                                                                                     |
-| `--outputDir <output dir>` | `workflow_output` | Specify the output directory.                                                                                                                 |
+| `--outputDir <output dir>` | `./workflow_output` | Specify the output directory.                                                                                                                 |
+| `--logDir` | `./workflow_logs` | Specifies the directory to save log files in. By default, this is a separate folder from `--outDir` |
 | `--downloadReferenceFiles` | N/A               | Downloaded reference files from NCBI. If this option is not selected, required genome files are assumed to be located in the input directory. |
 | `--aligner <aligner>`      | `hisat2`          | Pick which program to use for alignment, currently only HISAT2 is supported.                                                                  |
 | `--paired`                 | N/A               | Denotes that experiment is paired-end. If not selected, it is assumed that the experiment is single-end reads.                                |
