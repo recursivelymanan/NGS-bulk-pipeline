@@ -20,10 +20,6 @@ if (length(args) >= 2) {
     stop("Incorrect number of parameters passed.")
 }
 
-# Load in count and metadata tables
-#cts <- read.table(cts, sep = "\t", header = TRUE)
-#col_data <- read.table(col_data, sep = "\t", header = TRUE)
-
 # Run DESeq2
 dds <- DESeqDataSetFromMatrix(countData = cts,
                               colData = col_data,
