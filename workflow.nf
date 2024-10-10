@@ -289,6 +289,7 @@ process diffExpr {
     )
 
     input:
+    path r_script
     path counts
     path exp_design
 
@@ -298,12 +299,12 @@ process diffExpr {
     script:
     if (params.comparisons != null) {
         """
-        Rscript ./scripts/difexp_analysis.R $counts $exp_design $params.comparisons
+        Rscript $r_script $counts $exp_design $params.comparisons
         """
     }
     else {
         """
-        Rscript ./scripts/difexp_analysis.R $counts $exp_design
+        Rscript $r_script $counts $exp_design
         """
     }
 }
@@ -347,7 +348,7 @@ workflow processing {
         alignmentHISAT(params.paired, alignmentSetupHISAT.out.indices.collect(), fqs, params.hs2)
         convertToBAM(alignmentHISAT.out.sam)
         quantify(params.paired, genome_gtf, convertToBAM.out.bam, params.fc)
-        mergeCounts(channel.from(file("./scripts/merge_counts.py")), quantify.out.counts)
+        mergeCounts(channel.from(file("./scripts/merge_counts.py")), quantify.out.counts.collect())
     }
 
     emit:
@@ -359,7 +360,6 @@ workflow diffExp {
     counts
 
     main:
-
     diffExpr(counts, params.expDesign)
 }
 
@@ -375,9 +375,15 @@ workflow noDiffExp {
 Main workflow. 
 */
 workflow {
-    println("By default, DESeq2 analysis is included in the workflow. If you want to run DESeq2, make sure you have a properly set up meta data table. Refer to the README for more instructions.\n")
+    println("By default, DESeq2 analysis is included in the workflow. If you want to run DESeq2, make sure you have a properly set up metadata table. Refer to the README for more instructions.\n")
 
     QC()
     processing()
     diffExp(processing.out)
+}
+
+workflow testwf {
+    test = channel.fromPath("./test*.txt")
+    mergeCounts(channel.from(file("./scripts/merge_counts.py")), test.collect())
+    diffExpr(channel.from(file("./scripts/difexp_analysis.R")), mergeCounts.out.counts, channel.from(file("$params.expDesign")))
 }
