@@ -75,6 +75,14 @@ Using MultiQC as an example, if you wanted to change the title of the MultiQC re
 
 `nextflow run workflow.nf --inputDir data --mqc "--title CustomTitle"`
 
+## Troubleshooting
+
+Some common errors that may pop up:
+
+### ERROR ~ Failed to publish file
+
+Usually a memory issue, make sure you have enough disk space
+
 ## Planned Additions
 
 - Functionality for use with the STAR aligner
