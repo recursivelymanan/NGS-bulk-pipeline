@@ -360,7 +360,7 @@ workflow diffExp {
     counts
 
     main:
-    diffExpr(counts, params.expDesign)
+    diffExpr(channel.from(file("./scripts/difexp_analysis.R")), counts, params.expDesign)
 }
 
 /*
