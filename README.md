@@ -61,6 +61,14 @@ Each main program used in the workflow has an associated parameter with which yo
 
 > **_NOTE:_** Do not pass custom arguments related to the format of reads (single vs. paired end), as these options are taken care of based on the --paired parameter.
 
+#### Recommended Custom Arguments
+
+The following table contains some custom arguments that I recommend passing.
+
+| Program | Custom Argument | Description |
+|----|----|----|
+| HISAT2 | `-p [n threads]` | Based on your system, assign thread number for the HISAT2 program. Parallelization can greatly improve alignment speeds, at the cost of increased memory footprint.
+
 ##### Example:
 
 Using MultiQC as an example, if you wanted to change the title of the MultiQC report you could do so with the MultiQC --title parameter as follows:
