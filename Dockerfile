@@ -8,12 +8,13 @@ RUN apt-get update && \
     mv nextflow /usr/bin
 
 # Create conda env with necessary packages
-RUN conda create -n nf bioconda::fastqc bioconda::star bioconda::multiqc bioconda::subread conda-forge::ncbi-datasets-cli bioconda::hisat2 bioconda::samtools bioconda::bioconductor-deseq2 -y
+RUN conda create -n nf bioconda::fastqc bioconda::star bioconda::multiqc bioconda::subread conda-forge::ncbi-datasets-cli bioconda::hisat2 bioconda::samtools bioconda::bioconductor-deseq2 conda-forge::pandas -y
 
 # Bring nextflow workflow files and test data into container
 COPY workflow.nf nextflow.config /app/
 COPY data/ /app/data/
 COPY assets/ /app/assets/
+COPY scripts/ /app/scripts/
 
 WORKDIR /app
 
